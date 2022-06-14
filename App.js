@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { StatusBar } from 'expo-status-bar';
-import { TouchableOpacity, Text, View, FlatList, StyleSheet, Button } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Animated, FlatList, Button} from 'react-native';
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import Weather from "./components/Weather";
+
 
 const SGTEMPERATURE_URL = "https://api.data.gov.sg/v1/environment/air-temperature?date_time="
 
@@ -38,6 +39,34 @@ function MainScreen({ navigation }) {
       });
   }
 
+
+export default class App extends React.Component {
+  state = {
+    isLoading: true
+  };
+
+  render() {
+    const { isLoading } = this.state;
+    return (
+      <View style={styles.container}>
+        {isLoading ? (
+          <Text>Fetching The Weather</Text>
+        ) : (
+          <View>
+            <Text> Lightning Warning App</Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+}  
+  
+  // Function for time update
+  useEffect(() => {
+    let time = getCurrentTime();
+    setTime(time);
+  }, []);
+
   const getCurrentTime = () => {
     let today = new Date();
     let date = today.toISOString().split('T')[0];
@@ -46,6 +75,7 @@ function MainScreen({ navigation }) {
     let seconds = (today.getSeconds() < 10 ? '0' : '') + today.getSeconds();
     return date + 'T' + hours + ':' + minutes + ':' + seconds;
 }
+
 
   // Function for auto refresh every minute
   useEffect(() => {
