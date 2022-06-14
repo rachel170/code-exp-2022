@@ -1,26 +1,44 @@
 import React, { useState, useEffect } from "react";
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Animated, FlatList, Button} from 'react-native';
+import { createStackNavigator } from "@react-navigation/stack";
+import { NavigationContainer } from "@react-navigation/native";
+import Weather from "./components/Weather";
 
-export default function App() {
+
+const SGTEMPERATURE_URL = "https://api.data.gov.sg/v1/environment/air-temperature?date_time="
+
+function MainScreen({ navigation }) {
 
   // Var
-  const [loading, setLoading] = useState(true);
-  const [time, setTime] = useState(null);
+  const [isLoading, setLoading] = useState(true);
+  const [readings, setReadings] = useState([]);
+  const [stations, setStations] = useState([]);
+  const [error, setError] = useState("");
 
-  const getCurrentTime = () => {
-    let today = new Date();
-    let hours = (today.getHours() < 10 ? '0' : '') + today.getHours();
-    let minutes = (today.getMinutes() < 10 ? '0' : '') + today.getMinutes();
-    return hours + ':' + minutes;
-  }
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <Button onPress={loadWeatherData} title="Update" />,
+    });
+  });
 
   // Function to load/process data
-  function loadLightningWarningData() {
+  function loadWeatherData() {
     setLoading(true);
-    // TODO: Process/Fetch data
-    setLoading(false);
+
+    datetime = getCurrentTime();
+
+    fetch(SGTEMPERATURE_URL + datetime)
+      .then((response) => { return response.json(); })
+      .then((responseData) => {
+
+        setStations(responseData.metadata.stations);
+        setReadings(responseData.items[0]);
+        
+        setLoading(false);
+      });
   }
+
 
 export default class App extends React.Component {
   state = {
@@ -49,55 +67,79 @@ export default class App extends React.Component {
     setTime(time);
   }, []);
 
-  // Function for auto refresh
+  const getCurrentTime = () => {
+    let today = new Date();
+    let date = today.toISOString().split('T')[0];
+    let hours = (today.getHours() < 10 ? '0' : '') + today.getHours();
+    let minutes = (today.getMinutes() < 10 ? '0' : '') + today.getMinutes();
+    let seconds = (today.getSeconds() < 10 ? '0' : '') + today.getSeconds();
+    return date + 'T' + hours + ':' + minutes + ':' + seconds;
+}
+
+
+  // Function for auto refresh every minute
   useEffect(() => {
-    const interval = setInterval(loadLightningWarningData, 15000);
+    const interval = setInterval(loadWeatherData, 5 * 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  },[]);
+
+  function renderItem({ item }) {
+    let temp = 0;
+    let arr = readings.readings;
+    for(let i = 0; i < arr.length; i++) {
+      if (arr[i].station_id === item.id) {
+        temp = arr[i].value;
+      }
+    }
+
+    return (
+      <View style={{borderColor:'black',}}>
+      <Weather temperature={temp} location={item.name} />
+      </View>
+    );
+  }
 
   // View
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{time}</Text>
-      <Text style={styles.arrivalTime}>
-        {loading ? <ActivityIndicator size="large" /> : "arrival" }
-      </Text>
-      <Text style={[styles.arrivalTime, { fontSize: 20 }]}>
-        {loading ? <ActivityIndicator size="large" /> : "arrival2" }
-      </Text>
-      <TouchableOpacity style={styles.button} onPress={loadLightningWarningData}>
-        <Text style={styles.buttonText}>Refresh!</Text>
-      </TouchableOpacity>
-      <StatusBar style="auto" />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Fetching The Temperatures</Text>
+        </View>
+      ) : (
+        <FlatList style={styles.list} data={stations} renderItem={renderItem} />
+      )}
     </View>
   );
 }
+
+const Stack = createStackNavigator();
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="Live Temperatures in Singapore" component={MainScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    alignItems: 'center',
+    alignSelf: 'stretch',
     justifyContent: 'center',
   },
-  title: {
-    fontWeight: "bold",
-    fontSize: 28,
-    marginBottom: 20
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFDE4'
   },
-  arrivalTime: {
-    fontWeight: "bold",
-    fontSize: 52
-  },
-  button: {
-    backgroundColor: "green",
-    padding: 20,
-    marginTop: 20
-  },
-  buttonText: {
-    fontSize: 28,
-    color: "white",
-    fontWeight: "bold",
+  loadingText: {
+    fontSize: 30
   },
 });
