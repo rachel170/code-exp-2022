@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
 
 export default function App() {
 
@@ -22,6 +22,27 @@ export default function App() {
     setLoading(false);
   }
 
+export default class App extends React.Component {
+  state = {
+    isLoading: true
+  };
+
+  render() {
+    const { isLoading } = this.state;
+    return (
+      <View style={styles.container}>
+        {isLoading ? (
+          <Text>Fetching The Weather</Text>
+        ) : (
+          <View>
+            <Text> Lightning Warning App</Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+}  
+  
   // Function for time update
   useEffect(() => {
     let time = getCurrentTime();
